@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// 投稿のファイルの置き場所．データ構造は docs/decisions/008-post-upload.md．変更は必ず1人の確認を得る
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 投稿の画像・動画: problems/{problemId}/posts/{uid}/{ファイル名}
+    match /problems/{problemId}/posts/{uid}/{fileName} {
+      // 本人はいつでも．ほかの参加者は全員が提出したあとだけ（docs/decisions/011-hide-until-all-submitted.md）
+      allow get: if request.auth != null
+        && (request.auth.uid == uid || canSeeOthers(problem(problemId), request.auth.uid));
+
+      // ファイル名は毎回新しく作るので，上書き・削除は許さない．全員が提出したら締め切る
+      allow create: if request.auth != null && request.auth.uid == uid
+        && resource == null
+        && uid in problem(problemId).memberUids
+        && !allSubmitted(problem(problemId))
+        && (isImage() || isVideo());
+    }
+
+    function problem(problemId) {
+      return firestore.get(/databases/(default)/documents/problems/$(problemId)).data;
+    }
+
+    // firebase/firestore.rules の allSubmitted と揃える
+    function allSubmitted(p) {
+      return p.memberUids.size() >= 2 && p.submittedUids.size() == p.memberUids.size();
+    }
+
+    function canSeeOthers(p, viewerUid) {
+      return viewerUid in p.memberUids && allSubmitted(p);
+    }
+
+    // web/src/posts.ts の上限と揃える
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // 長さ（60秒以内）はここでは確かめられないので，ブラウザと Firestore の durationSec で確かめる
+    function isVideo() {
+      return request.resource.contentType.matches('video/(mp4|quicktime|webm)')
+        && request.resource.size <= 100 * 1024 * 1024;
+    }
+  }
+}

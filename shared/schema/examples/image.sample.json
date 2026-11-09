@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1.0",
+  "steps": [
+    {
+      "id": "s1",
+      "what": "素数が有限個しかないと仮定し，すべてを p1, p2, …, pn と並べた",
+      "why": {
+        "text": "無限を直接示すのは難しいので，有限と仮定して矛盾を出す",
+        "by": "post_quote"
+      },
+      "transcript": "素数が有限個 p_1, \\dots, p_n しかないと仮定する（無限を直接示すのは難しいので，有限と仮定して矛盾を出す）",
+      "source": { "kind": "image", "imageIndex": 0, "box2d": [60, 50, 180, 950] }
+    },
+    {
+      "id": "s2",
+      "what": "すべての素数の積に 1 を足した数 N を作った",
+      "why": null,
+      "transcript": "N = p_1 p_2 \\cdots p_n + 1",
+      "source": { "kind": "image", "imageIndex": 0, "box2d": [200, 50, 300, 700] }
+    },
+    {
+      "id": "s3",
+      "what": "N はどの pi で割っても 1 余ることを確かめた",
+      "why": null,
+      "transcript": "N \\equiv 1 \\pmod{p_i} \\quad (i = 1, \\dots, n)",
+      "source": { "kind": "image", "imageIndex": 0, "box2d": [320, 50, 430, 800] }
+    },
+    {
+      "id": "s4",
+      "what": "N の素因数は p1〜pn のどれでもないので，仮定と矛盾すると結論した",
+      "why": {
+        "text": "N > 1 なので N は素因数を少なくとも1つ持つ．それがリストに無いのはおかしいと思った",
+        "by": "author"
+      },
+      "transcript": "N の素因数 q はどの p_i とも異なる．これは仮定に反する．",
+      "source": { "kind": "image", "imageIndex": 1, "box2d": [40, 50, 220, 950] }
+    }
+  ]
+}

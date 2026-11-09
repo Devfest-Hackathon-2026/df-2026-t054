@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1.0",
+  "steps": [
+    {
+      "id": "s1",
+      "what": "(x+1)^2 と (x-1)^2 をそれぞれ展開した",
+      "why": null,
+      "transcript": "それぞれを展開する．\n$(x+1)^2 = x^2 + 2x + 1$\n$(x-1)^2 = x^2 - 2x - 1$",
+      "source": {
+        "kind": "text",
+        "lineStart": 3,
+        "lineEnd": 5
+      }
+    },
+    {
+      "id": "s2",
+      "what": "展開した2つの式を引き算してまとめた",
+      "why": null,
+      "transcript": "引き算すると\n$(x^2 + 2x + 1) - (x^2 - 2x - 1) = 4x + 2$",
+      "source": {
+        "kind": "text",
+        "lineStart": 7,
+        "lineEnd": 8
+      }
+    }
+  ]
+}

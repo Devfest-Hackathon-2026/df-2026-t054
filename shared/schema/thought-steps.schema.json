@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/crab2424/gdgoc-2026/shared/schema/thought-steps.schema.json",
+  "title": "ThoughtSteps",
+  "description": "1つの投稿（手書き写真・LaTeX などのテキスト・説明動画）を「思考ステップ」の列にしたもの．各ステップは「何をしたか」「なぜ」「元の場所」を持つ．スキーマで表せない決まりは shared/schema/README.md の「使う側で確かめる決まり」にある．",
+  "type": "object",
+  "required": ["schemaVersion", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "このスキーマの版．形を変えたら上げる．",
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "steps": {
+      "description": "思考ステップ．配列の順番が考えた順番．",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["id", "what", "why", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "投稿の中で一意な ID（例: s1）．分岐点・質問・問いかけからこの ID で参照する．重複しないことは使う側で確かめる．",
+          "type": "string",
+          "pattern": "^s[0-9]+$"
+        },
+        "what": {
+          "description": "何をしたか．投稿の内容を短く整理したもの（AI が書いてよい）．正誤の評価は書かない．",
+          "type": "string",
+          "minLength": 1
+        },
+        "why": {
+          "description": "なぜそうしたか．空（null）を許す．AI は理由を推測して書かない．",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/why" }
+          ]
+        },
+        "transcript": {
+          "description": "元の場所に実際に書かれている式・文，または話している言葉の書き起こし（任意．ただし why.by が post_quote のときは必須で，why.text をそのまま含む）．人が what と原本を照らし合わせるため．",
+          "type": "string"
+        },
+        "source": {
+          "description": "元の場所．画像の範囲・テキストの行の範囲・動画の時刻のどれか．",
+          "anyOf": [
+            { "$ref": "#/$defs/imageSource" },
+            { "$ref": "#/$defs/textSource" },
+            { "$ref": "#/$defs/videoSource" }
+          ]
+        }
+      }
+    },
+    "why": {
+      "type": "object",
+      "required": ["text", "by"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "by": {
+          "description": "誰の言葉か．post_quote = 投稿の中で本人が書いた・話した理由をそのまま引用したもの（AI が抜き出してよいのは引用だけ．同じステップの transcript に text がそのまま含まれていること．UI では本人が承認・削除できるようにする）．author = 本人がアプリで書き込んだもの．",
+          "type": "string",
+          "enum": ["post_quote", "author"]
+        }
+      }
+    },
+    "imageSource": {
+      "type": "object",
+      "required": ["kind", "imageIndex", "box2d"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "const": "image" },
+        "imageIndex": {
+          "description": "投稿内の何枚目の画像か（0 始まり）．ノートが複数ページのとき用．",
+          "type": "integer",
+          "minimum": 0
+        },
+        "box2d": {
+          "description": "範囲 [ymin, xmin, ymax, xmax]．画像の幅・高さを 1000 とした整数（Gemini の bounding box と同じ形）．ymin ≤ ymax，xmin ≤ xmax．",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "textSource": {
+      "type": "object",
+      "required": ["kind", "lineStart", "lineEnd"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "const": "text" },
+        "lineStart": {
+          "description": "このステップが書かれている最初の行（1 始まり）．投稿の本文を改行で分けたときの行番号．",
+          "type": "integer",
+          "minimum": 1
+        },
+        "lineEnd": {
+          "description": "このステップが書かれている最後の行（この行を含む）．lineStart 以上，本文の行数以下．",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "videoSource": {
+      "type": "object",
+      "required": ["kind", "startSec", "endSec"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "const": "video" },
+        "startSec": {
+          "description": "このステップを説明し始めた時刻（秒）．再生位置にそのまま渡せる．",
+          "type": "number",
+          "minimum": 0
+        },
+        "endSec": {
+          "description": "このステップの説明が終わった時刻（秒）．startSec 以上，動画の長さ以下．",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

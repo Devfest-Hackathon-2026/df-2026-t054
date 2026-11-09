@@ -1,0 +1,4 @@
+node_modules/
+out/
+samples/*.mp4
+samples/build/

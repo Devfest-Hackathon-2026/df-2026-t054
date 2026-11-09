@@ -1,0 +1,221 @@
+rules_version = '2';
+
+// データ構造は docs/decisions/007-problem-firestore-invite.md．変更は必ず1人の確認を得る
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /problems/{problemId} {
+      // 公開のしくみは docs/decisions/011-hide-until-all-submitted.md．提出の確定は docs/decisions/issue-70-confirm-submit.md
+      function problemPath() {
+        return /databases/$(database)/documents/problems/$(problemId);
+      }
+
+      // 参加者全員が提出したか．参加者が1人のうちは「全員」と見なさない
+      // （作った人が招待する前に投稿しても締め切られないように）
+      function allSubmitted(p) {
+        return p.memberUids.size() >= 2 && p.submittedUids.size() == p.memberUids.size();
+      }
+
+      // 全員が提出したあとは，参加者どうしで投稿・ステップを読み合える
+      function canSeeOthers() {
+        let p = get(problemPath()).data;
+        return signedIn() && request.auth.uid in p.memberUids && allSubmitted(p);
+      }
+
+      // 招待リンク（problemId）を知っている人が，参加前にタイトルを確認できるようにする
+      allow get: if signedIn();
+      // 一覧は自分が参加しているものだけ
+      allow list: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if signedIn() && validNewProblem(request.resource.data);
+
+      // 更新は「参加」「提出」「提出の取り消し」だけ．全員が提出したら締め切り，どれもできない
+      allow update: if signedIn() && !allSubmitted(resource.data) && (isJoin() || isSubmit() || isWithdraw());
+
+      // 削除: 作った人が，まだ自分しか参加していないときだけ（ほかの人の解法まで消えないように）．
+      // 投稿・ステップ・Storage のファイルはサーバー（server/ の deleteProblemData）が消す．docs/decisions/issue-72-delete-problem.md
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && resource.data.memberUids == [request.auth.uid];
+
+      // 参加: 自分の uid を memberUids の末尾に1つ足すだけ
+      function isJoin() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+          && !(request.auth.uid in resource.data.memberUids)
+          && request.resource.data.memberUids == resource.data.memberUids.concat([request.auth.uid]);
+      }
+
+      // 提出: 参加者が自分の uid を submittedUids の末尾に1つ足すだけ（docs/decisions/issue-70-confirm-submit.md）．
+      // 自分の投稿があり，そのステップ化が終わっている（steps が done で，今の投稿と同じ版）ときだけ．
+      // これで「締め切られた問題は全員のステップがそろっている」ことになる
+      function isSubmit() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submittedUids'])
+          && request.auth.uid in resource.data.memberUids
+          && !(request.auth.uid in resource.data.submittedUids)
+          && request.resource.data.submittedUids == resource.data.submittedUids.concat([request.auth.uid])
+          && stepsDone(request.auth.uid);
+      }
+
+      // 投稿は書いたあとの状態（getAfter）と比べる．同じバッチで投稿を書き換えると版が合わず拒否される
+      function stepsDone(uid) {
+        let postPath = /databases/$(database)/documents/problems/$(problemId)/posts/$(uid);
+        let stepsPath = /databases/$(database)/documents/problems/$(problemId)/steps/$(uid);
+        return existsAfter(postPath) && exists(stepsPath)
+          && get(stepsPath).data.status == 'done'
+          && get(stepsPath).data.postCreatedAt == getAfter(postPath).data.createdAt;
+      }
+
+      // 提出の取り消し: 締め切り前なら，提出した人が自分の uid を submittedUids から抜ける（出し直すため）
+      function isWithdraw() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submittedUids'])
+          && request.auth.uid in resource.data.submittedUids
+          && request.resource.data.submittedUids == resource.data.submittedUids.removeAll([request.auth.uid]);
+      }
+
+      function validNewProblem(data) {
+        let keys = ['title', 'body', 'ownerUid', 'memberUids', 'submittedUids', 'createdAt'];
+        return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+          && data.title is string && data.title.size() >= 1 && data.title.size() <= 100
+          && data.body is string && data.body.size() >= 1 && data.body.size() <= 5000
+          && data.ownerUid == request.auth.uid
+          && data.memberUids == [request.auth.uid]
+          && data.submittedUids == []
+          && data.createdAt == request.time;
+      }
+
+      // 思考ステップ: 投稿ごとに1つ．ドキュメント ID は投稿した人の uid．データ構造は docs/decisions/009-steps-trigger.md
+      // 書くのはサーバー（Cloud Functions の Admin SDK．ルールを通らない）だけ
+      match /steps/{uid} {
+        // 本人はいつでも．ほかの参加者は全員が提出したあとだけ
+        allow get: if signedIn() && (request.auth.uid == uid || canSeeOthers());
+        allow list: if canSeeOthers();
+      }
+
+      // 2人ずつの思考ステップの対応関係．ドキュメント ID は {uidA}_{uidB}．データ構造は docs/decisions/012-step-alignment.md
+      // 書くのはサーバーだけ．作られるのは全員が提出したあとなので，読めるのも全員が提出したあとの参加者だけ
+      match /comparisons/{pairId} {
+        allow get, list: if canSeeOthers();
+
+        // AI の問いかけに本人が書いた理由．1つの問い（side と stepId）に1つ．ドキュメント ID は {side}_{stepId}．
+        // データ構造は docs/decisions/issue-20-author-answers.md
+        match /answers/{answerId} {
+          allow get, list: if canSeeOthers();
+
+          // 書けるのは，その side の本人だけ．対応関係ができた（done）あとだけ
+          allow create, update: if canSeeOthers() && isAnswerer(get(comparisonPath()).data, request.resource.data)
+            && validAnswer(request.resource.data);
+          allow delete: if canSeeOthers() && isAnswerer(get(comparisonPath()).data, resource.data);
+
+          function comparisonPath() {
+            return /databases/$(database)/documents/problems/$(problemId)/comparisons/$(pairId);
+          }
+
+          function isAnswerer(c, data) {
+            return c.status == 'done'
+              && data.side in ['a', 'b']
+              && data.uid == request.auth.uid
+              && data.uid == c.uids[data.side == 'a' ? 0 : 1]
+              && answerId == data.side + '_' + data.stepId;
+          }
+
+          function validAnswer(data) {
+            let keys = ['uid', 'side', 'stepId', 'text', 'updatedAt'];
+            return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+              && data.stepId is string && data.stepId.size() >= 1 && data.stepId.size() <= 20
+              && data.text is string && data.text.size() >= 1 && data.text.size() <= 1000
+              && data.updatedAt == request.time;
+          }
+        }
+      }
+
+      // 投稿: 1人1つ．ドキュメント ID は投稿した人の uid．データ構造は docs/decisions/008-post-upload.md
+      match /posts/{uid} {
+        // 本人はいつでも．ほかの参加者は全員が提出したあとだけ
+        allow get: if signedIn() && (request.auth.uid == uid || canSeeOthers());
+        allow list: if canSeeOthers();
+
+        // 投稿は下書き．提出は problem の submittedUids に自分を足す別の操作（docs/decisions/issue-70-confirm-submit.md）．
+        // 書けるのは参加者で，書いたあとも締め切り前で，まだ提出していないときだけ（提出した版が変わらないように．
+        // 直したいときは提出を取り消してから出し直す）．getAfter にするのは，提出と書き換えを同じバッチで
+        // 送られたときに拒否するため（バッチの中で get は書く前の problem を返す）
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.auth.uid in get(problemPath()).data.memberUids
+          && !allSubmitted(getAfter(problemPath()).data)
+          && !(request.auth.uid in getAfter(problemPath()).data.submittedUids)
+          && validPost(request.resource.data);
+
+        // Storage の自分の置き場所（problems/{problemId}/posts/{uid}/ の直下）のファイルか
+        function ownFile(path) {
+          return path is string && path.matches('problems/' + problemId + '/posts/' + uid + '/[^/]+');
+        }
+
+        function hasKeys(data, keys) {
+          return data.keys().hasAll(keys) && data.keys().hasOnly(keys);
+        }
+
+        // 画像は1〜5枚．ルールではループが書けないので1枚ずつ確かめる
+        function validImagePaths(paths) {
+          return paths is list && paths.size() >= 1 && paths.size() <= 5
+            && ownFile(paths[0])
+            && (paths.size() < 2 || ownFile(paths[1]))
+            && (paths.size() < 3 || ownFile(paths[2]))
+            && (paths.size() < 4 || ownFile(paths[3]))
+            && (paths.size() < 5 || ownFile(paths[4]));
+        }
+
+        function validPost(data) {
+          return data.createdAt == request.time && (
+            (data.kind == 'image' && hasKeys(data, ['kind', 'imagePaths', 'createdAt'])
+              && validImagePaths(data.imagePaths))
+            || (data.kind == 'text' && hasKeys(data, ['kind', 'text', 'createdAt'])
+              && data.text is string && data.text.size() >= 1 && data.text.size() <= 20000)
+            || (data.kind == 'video' && hasKeys(data, ['kind', 'videoPath', 'durationSec', 'createdAt'])
+              && ownFile(data.videoPath)
+              && data.durationSec is number && data.durationSec > 0 && data.durationSec <= 60)
+          );
+        }
+      }
+
+      // ステップへの質問のスレッド．質問1つに1つ（ドキュメント ID は自動）．返信はその下の replies．
+      // データ構造は docs/decisions/issue-21-step-threads.md
+      // 読み書きできるのは全員が提出したあとの参加者だけ．書き直しはできず，消せるのは自分が書いたものだけ
+      match /threads/{threadId} {
+        allow get, list: if canSeeOthers();
+        allow create: if canSeeOthers() && validThread(request.resource.data);
+        allow delete: if canSeeOthers() && resource.data.uid == request.auth.uid;
+
+        function validText(text) {
+          return text is string && text.size() >= 1 && text.size() <= 1000;
+        }
+
+        function validThread(data) {
+          let keys = ['uid', 'stepOwnerUid', 'stepId', 'text', 'createdAt'];
+          return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+            && data.uid == request.auth.uid
+            && data.stepOwnerUid in get(problemPath()).data.memberUids
+            && data.stepId is string && data.stepId.size() >= 1 && data.stepId.size() <= 20
+            && validText(data.text)
+            && data.createdAt == request.time;
+        }
+
+        match /replies/{replyId} {
+          allow get, list: if canSeeOthers();
+          allow create: if canSeeOthers()
+            && exists(/databases/$(database)/documents/problems/$(problemId)/threads/$(threadId))
+            && validReply(request.resource.data);
+          allow delete: if canSeeOthers() && resource.data.uid == request.auth.uid;
+
+          function validReply(data) {
+            let keys = ['uid', 'text', 'createdAt'];
+            return data.keys().hasAll(keys) && data.keys().hasOnly(keys)
+              && data.uid == request.auth.uid
+              && validText(data.text)
+              && data.createdAt == request.time;
+          }
+        }
+      }
+    }
+  }
+}

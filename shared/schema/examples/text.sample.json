@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "0.1.0",
+  "steps": [
+    {
+      "id": "s1",
+      "what": "「任意の n より大きい素数がある」ことを示せばよいと言い換えた",
+      "why": {
+        "text": "上限を決めても必ずその先に素数があれば，有限個では尽きない",
+        "by": "post_quote"
+      },
+      "transcript": "任意の自然数 $n$ に対して，$n$ より大きい素数があることを示せばよい．\n（上限を決めても必ずその先に素数があれば，有限個では尽きない）",
+      "source": { "kind": "text", "lineStart": 3, "lineEnd": 4 }
+    },
+    {
+      "id": "s2",
+      "what": "M = n! + 1 を作り，2〜n のどの数で割っても 1 余ることを確かめた",
+      "why": null,
+      "transcript": "$M = n! + 1$ とおく．\n$2 \\le k \\le n$ のどの $k$ も $n!$ を割り切るので，$M$ を $k$ で割ると 1 余る．",
+      "source": { "kind": "text", "lineStart": 6, "lineEnd": 7 }
+    },
+    {
+      "id": "s3",
+      "what": "M の素因数 p をとり，p が n より大きいことを示した",
+      "why": null,
+      "transcript": "$M$ の素因数 $p$ を1つとる（$M \\ge 2$ なので存在する）．\n上より $p$ は $2, \\dots, n$ のどれでもないので $p > n$．",
+      "source": { "kind": "text", "lineStart": 9, "lineEnd": 10 }
+    },
+    {
+      "id": "s4",
+      "what": "n より大きい素数が存在すると結論した",
+      "why": null,
+      "transcript": "よって $n$ より大きい素数が存在する．$\\blacksquare$",
+      "source": { "kind": "text", "lineStart": 12, "lineEnd": 12 }
+    }
+  ]
+}

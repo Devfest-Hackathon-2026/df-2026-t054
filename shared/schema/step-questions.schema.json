@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/crab2424/gdgoc-2026/shared/schema/step-questions.schema.json",
+  "title": "StepQuestions",
+  "description": "2つの投稿（a と b）を比べたときに，AI が本人に向けて出す問いかけ．分岐点のステップと「なぜ」が空のステップに1つずつ付く．問いだけで，答え・理由・ヒント・正誤は含まない．スキーマで表せない決まりは shared/schema/README.md の「問いかけで使う側が確かめる決まり」にある．",
+  "type": "object",
+  "required": ["schemaVersion", "questions"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "このスキーマの版．形を変えたら上げる．",
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "questions": {
+      "description": "問いかけ．a のステップの順，次に b のステップの順に並べる．対象が無ければ空．",
+      "type": "array",
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "question": {
+      "type": "object",
+      "required": ["side", "stepId", "kind", "text", "by"],
+      "additionalProperties": false,
+      "properties": {
+        "side": {
+          "description": "問いかける相手．a か b の投稿の本人．",
+          "type": "string",
+          "enum": ["a", "b"]
+        },
+        "stepId": {
+          "description": "問いを付けるステップ（side の投稿の thought-steps の id）．",
+          "type": "string",
+          "pattern": "^s[0-9]+$"
+        },
+        "kind": {
+          "description": "branch = 分岐点（split の区間のその側の最初のステップ）．もう1人と比べて「なぜこちらを選んだか」を問う．missing_why = 分岐点以外で why が null のステップ．「なぜそうしたか」を問う．",
+          "type": "string",
+          "enum": ["branch", "missing_why"]
+        },
+        "text": {
+          "description": "問いの文．1文で「？」で終わる．答え・理由の候補・ヒント・正誤の評価を含まない．",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "by": {
+          "description": "ai = Gemini が書いた問い．template = Gemini の問いが使えなかったので決まった文にした．",
+          "type": "string",
+          "enum": ["ai", "template"]
+        }
+      }
+    }
+  }
+}

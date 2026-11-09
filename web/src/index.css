@@ -1,0 +1,448 @@
+/* 全体のスタイル（#74）．まず要素のセレクタで効かせ，クラスは要素だけで決められない所にだけ使う．
+   色の決め方は docs/decisions/issue-74-global-styles.md．
+   分岐点の図の色（左の道・右の道・同じ区間）は branchColors.ts にあり，ここでは同じ系統（slate）の灰色と，
+   どの道とも紛れない色（teal）をボタンなどに使う */
+
+:root {
+  color-scheme: light;
+
+  /* 色 */
+  --color-bg: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-surface-sub: #f8fafc;
+  --color-text: #1e293b;
+  --color-muted: #64748b;
+  --color-border: #cbd5e1;
+  --color-border-strong: #94a3b8;
+  --color-accent: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-soft: #f0fdfa;
+  --color-accent-soft-hover: #ccfbf1;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-status-soft: #f1f5f9;
+
+  /* 余白 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --gutter: 16px;
+
+  /* 角丸 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* 文字 */
+  --font-sans: system-ui, -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic UI',
+    Meiryo, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --line-height: 1.7;
+
+  /* 本文の最大幅 */
+  --content-width: 52rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--line-height);
+  /* 長い URL・式でスマホ幅からはみ出さないよう，どこでも折り返せるようにする */
+  overflow-wrap: anywhere;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ヘッダーは幅いっぱいに敷き，中身は本文と同じ幅に揃える */
+header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  /* main は max-width の内側に gutter があるので，左端をそろえるには gutter の分も足す */
+  padding: var(--space-3) max(var(--gutter), calc((100% - var(--content-width)) / 2 + var(--gutter)));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+header h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+header h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+header p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+main {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--gutter) var(--space-6);
+}
+
+/* 見出し */
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.4;
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+h2 {
+  font-size: var(--text-2xl);
+}
+
+h3 {
+  font-size: var(--text-xl);
+}
+
+h4 {
+  font-size: var(--text-lg);
+}
+
+h5 {
+  font-size: var(--text-md);
+}
+
+p {
+  margin: var(--space-3) 0;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+small {
+  font-size: var(--text-sm);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-5) 0;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+code {
+  background: var(--color-status-soft);
+  border-radius: 4px;
+  padding: 0 0.25em;
+}
+
+pre {
+  background: var(--color-surface-sub);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+/* 区切り（カード）．main の直下の節（一覧・作成フォーム・招待の確認）と，問題の詳細ページの各節 */
+main > section,
+main > form,
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-5) var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+/* 節の先頭の見出しは，カードの上の余白と重ならないよう詰める */
+main > section > h2:first-child,
+main > form > h2:first-child,
+.card > section > h3:first-child,
+.card > h3:first-child {
+  margin-top: var(--space-3);
+}
+
+/* ほかの参加者1人分の解法（OthersSection の中の OtherPost） */
+#others h3 ~ section {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-4);
+}
+
+#others h3 ~ section > h4 {
+  margin-top: var(--space-4);
+}
+
+/* 目次 */
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+nav a {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+/* ボタン．押せるものは全部 teal の地と枠で塗り，地の文と見分けられるようにする（#89）．
+   高さは指で押しやすい 44px 前後にする */
+button,
+::file-selector-button {
+  font: inherit;
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+button {
+  margin: var(--space-1) var(--space-2) var(--space-1) 0;
+}
+
+button:hover:not(:disabled),
+::file-selector-button:hover {
+  background: var(--color-accent-soft-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-hover);
+}
+
+/* 送信（投稿する・作成する・保存など）は目立たせる */
+button[type='submit'],
+button.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #ffffff;
+}
+
+button[type='submit']:hover:not(:disabled),
+button.primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  /* 上の全体のホバーで文字を teal にしているので，塗りつぶしのボタンでは白に戻す（背景と同化しないように） */
+  color: #ffffff;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+button.danger {
+  color: var(--color-danger);
+  background: var(--color-surface);
+  border-color: var(--color-danger);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 入力欄 */
+input:not([type='radio']):not([type='checkbox']):not([type='file']),
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  /* size・cols を指定していてもスマホ幅からはみ出さない */
+  max-width: 100%;
+}
+
+textarea {
+  width: 100%;
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-accent);
+}
+
+input[type='file'] {
+  max-width: 100%;
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+
+input[type='radio'],
+input[type='checkbox'],
+progress {
+  accent-color: var(--color-accent);
+}
+
+input[type='radio'] {
+  margin: 0 var(--space-1) 0 0;
+}
+
+/* 段落の中のラベル（見出し＋入力欄）は1行を使い，textarea を幅いっぱいにする */
+p > label {
+  display: block;
+}
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+fieldset label {
+  margin-right: var(--space-4);
+}
+
+legend {
+  padding: 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+progress {
+  vertical-align: middle;
+  width: 10rem;
+  max-width: 50%;
+}
+
+/* エラーと状態 */
+[role='alert'],
+[role='status'] {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid;
+}
+
+[role='alert'] {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+[role='status'] {
+  background: var(--color-status-soft);
+  border-color: var(--color-border-strong);
+}
+
+/* 詳細（たたんだ AI の問いかけ・式の確認の説明） */
+summary {
+  cursor: pointer;
+}
+
+/* 文字の色を薄くする（補足・AI の対応づけの説明など） */
+.muted {
+  color: var(--color-muted);
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
+/* 思考ステップの一覧（StepList） */
+.step-list {
+  padding-left: 1.75em;
+}
+
+.step-list > li {
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-1);
+}
+
+.step-list > li::marker {
+  color: var(--color-muted);
+  font-weight: bold;
+}
+
+/* 質問のスレッド（StepThread）．書いたのは参加者なので，分岐点の色とは別の灰色の線にする */
+.thread {
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
+.thread ul {
+  list-style: none;
+  padding-left: var(--space-3);
+  margin: var(--space-2) 0;
+  border-left: 1px solid var(--color-border);
+}
+
+/* AI の問いかけ（QuestionAnswer）．答えに見えないよう，強調せず細い線で添える */
+.ai-question {
+  border-left: 2px solid var(--color-border-strong);
+  padding-left: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* スマホ幅: 分岐点の図の2列に幅を回すため，カードの内側の余白を詰める */
+@media (max-width: 480px) {
+  main > section,
+  main > form,
+  .card {
+    padding: var(--space-1) var(--space-3) var(--space-3);
+    border-radius: var(--radius-md);
+  }
+
+  .step-list {
+    padding-left: 1.25em;
+  }
+}

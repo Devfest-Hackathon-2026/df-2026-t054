@@ -1,0 +1,23 @@
+{
+  "name": "poc-8-image-to-steps",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "PoC (#8): 手書き写真・LaTeX を Gemini の構造化出力で思考ステップの JSON にする",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/main.ts",
+    "models": "node --env-file-if-exists=.env src/list-models.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "2.31.0",
+    "ajv": "8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

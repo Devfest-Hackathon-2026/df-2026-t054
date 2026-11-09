@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/crab2424/gdgoc-2026/shared/schema/math-checks.schema.json",
+  "title": "MathChecks",
+  "description": "1つの投稿の思考ステップのうち，式を変形したステップを SymPy で確かめた結果（参考）．正誤の判定ではなく，「SymPy で変形の前後が同じ式になったか」という計算の事実だけを持つ．スキーマで表せない決まりは shared/schema/README.md の「式変形の確認で使う側が確かめる決まり」にある．",
+  "type": "object",
+  "required": ["schemaVersion", "checks", "code"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "このスキーマの版．形を変えたら上げる．",
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "checks": {
+      "description": "式変形ごとの確認結果．ステップの順に並べる．1つのステップに2つ以上あってよい．式変形が無ければ空．",
+      "type": "array",
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "code": {
+      "description": "実際に実行した SymPy（Python）のコード．人が確かめ方を見られるようにする．checks が空のときは null．",
+      "anyOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }]
+    }
+  },
+  "$defs": {
+    "check": {
+      "type": "object",
+      "required": ["stepId", "before", "after", "result", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "stepId": {
+          "description": "変形後の式が書かれているステップ（thought-steps の id）．",
+          "type": "string",
+          "pattern": "^s[0-9]+$"
+        },
+        "before": {
+          "description": "変形前の式．投稿に書かれた式を SymPy の書き方に写したもの（AI が写す．直したり補ったりしない）．",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "after": {
+          "description": "変形後の式．before と同じ書き方．",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "result": {
+          "description": "same = SymPy で before と after が同じ式になった．not_confirmed = SymPy では同じ式だと確かめられなかった（違う式とは限らない）．unparsed = 式として読み取れず確かめていない．",
+          "type": "string",
+          "enum": ["same", "not_confirmed", "unparsed"]
+        },
+        "detail": {
+          "description": "SymPy の出力．not_confirmed のときは simplify(before - after) の結果，unparsed のときはエラーの種類．same のときは null．",
+          "anyOf": [{ "type": "null" }, { "type": "string", "maxLength": 200 }]
+        }
+      }
+    }
+  }
+}

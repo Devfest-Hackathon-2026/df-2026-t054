@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/crab2424/gdgoc-2026/shared/schema/step-alignment.schema.json",
+  "title": "StepAlignment",
+  "description": "2つの投稿（a と b）の思考ステップの対応．両方のステップ列を頭から順に区間（segment）に分けたもの．same の区間は2人が同じことをした部分，split の区間は道が分かれていた部分．same → split の境目が分岐点，split → same の境目が合流点．スキーマで表せない決まりは shared/schema/README.md の「対応関係で使う側が確かめる決まり」にある．",
+  "type": "object",
+  "required": ["schemaVersion", "segments"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "このスキーマの版．形を変えたら上げる．",
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "segments": {
+      "description": "区間．配列の順番がステップの順番．a・b それぞれ，全区間の ID をつなぐと投稿のステップ列（thought-steps の steps の id）に順番どおり一致する．",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/segment" }
+    }
+  },
+  "$defs": {
+    "segment": {
+      "type": "object",
+      "required": ["type", "a", "b"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "description": "same = a の a[] と b の b[] が同じことをしている（書き方・記号は違ってよい）．split = 道が分かれていて，対応するステップがない．正誤やどちらがよいかは表さない．",
+          "type": "string",
+          "enum": ["same", "split"]
+        },
+        "a": {
+          "description": "この区間に入る a のステップの ID（続いた並び）．split では空でもよい（b だけが進んだ部分）．",
+          "type": "array",
+          "items": { "$ref": "#/$defs/stepId" }
+        },
+        "b": {
+          "description": "この区間に入る b のステップの ID（続いた並び）．split では空でもよい（a だけが進んだ部分）．",
+          "type": "array",
+          "items": { "$ref": "#/$defs/stepId" }
+        }
+      }
+    },
+    "stepId": {
+      "description": "thought-steps のステップの id．",
+      "type": "string",
+      "pattern": "^s[0-9]+$"
+    }
+  }
+}

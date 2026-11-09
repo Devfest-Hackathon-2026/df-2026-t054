@@ -1,0 +1,44 @@
+name: server
+
+on:
+  pull_request:
+    # server/ のビルドは shared/schema/ のスキーマを lib/ に写すので，スキーマの変更でも走らせる
+    paths:
+      - server/**
+      - shared/schema/**
+      - .github/workflows/server.yml
+  push:
+    branches: [main]
+    paths:
+      - server/**
+      - shared/schema/**
+      - .github/workflows/server.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: server
+
+jobs:
+  check:
+    name: 型チェック・テスト・ビルド
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # server/test/ の単体テスト（エミュレータは使わない）
+      - run: npm test
+      # build は tsc → shared/schema/ のスキーマを lib/ に写す
+      - run: npm run build

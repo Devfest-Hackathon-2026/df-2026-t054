@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1.0",
+  "checks": [
+    {
+      "stepId": "s1",
+      "before": "(x + 1)**2",
+      "after": "x**2 + 2*x + 1",
+      "result": "same",
+      "detail": null
+    },
+    {
+      "stepId": "s1",
+      "before": "(x - 1)**2",
+      "after": "x**2 - 2*x - 1",
+      "result": "not_confirmed",
+      "detail": "2"
+    },
+    {
+      "stepId": "s2",
+      "before": "(x**2 + 2*x + 1) - (x**2 - 2*x - 1)",
+      "after": "4*x + 2",
+      "result": "same",
+      "detail": null
+    }
+  ],
+  "code": "import json\nfrom sympy import Symbol, simplify\nfrom sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application, convert_xor\n\nT = standard_transformations + (implicit_multiplication_application, convert_xor)\n# SymPy で関数や定数の名前になっている1文字を，ただの文字として読む\nL = {k: Symbol(k) for k in [\"N\", \"S\", \"Q\", \"O\", \"C\", \"beta\", \"gamma\", \"zeta\"]}\nPAIRS = [[\"(x + 1)**2\",\"x**2 + 2*x + 1\"],[\"(x - 1)**2\",\"x**2 - 2*x - 1\"],[\"(x**2 + 2*x + 1) - (x**2 - 2*x - 1)\",\"4*x + 2\"]]\n\nfor i, (before, after) in enumerate(PAIRS):\n    try:\n        a = parse_expr(before, local_dict=L, transformations=T)\n        b = parse_expr(after, local_dict=L, transformations=T)\n        d = simplify(a - b)\n        same = d == 0 or (a - b).equals(0) is True\n        r = {\"i\": i, \"result\": \"same\" if same else \"not_confirmed\", \"detail\": None if same else str(d)[:200]}\n    except Exception as e:\n        r = {\"i\": i, \"result\": \"unparsed\", \"detail\": type(e).__name__}\n    print(\"MATHCHECK \" + json.dumps(r))\n"
+}

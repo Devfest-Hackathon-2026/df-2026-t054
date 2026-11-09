@@ -1,0 +1,22 @@
+# ステップ化の Gemini のモデルを投稿の種類ごとに環境変数で決め，画像だけ `gemini-3.8-flash` にする（2026-11-08）
+
+- 決めたこと:
+  - ステップ化（`postToSteps`）のモデルは `GEMINI_MODEL_IMAGE`・`GEMINI_MODEL_VIDEO`・`GEMINI_MODEL_TEXT` → `GEMINI_MODEL` → 種類ごとの既定 の順に，空でない最初の値にする（`server/src/models.ts`）
+  - 既定は画像だけ `gemini-3.8-flash`，動画・テキストは `gemini-3.1-flash-lite`（#9 の比較．`issue-9-poc-comparison.md`）
+  - `steps/{uid}.model` には実際に使ったモデルを書く（データ構造は変えない．もともと `model: string` がある）．ログにも `model` を足した
+  - 対応関係・問いかけ・式変形の確認は今までどおり `GEMINI_MODEL`（空なら `gemini-3.1-flash-lite`）1 つ．`comparisons/{id}.model` もこれ
+  - 1 回の呼び出しの上限（130 秒）と関数のタイムアウト（300 秒）は変えない．#9 の Vertex AI での `gemini-3.8-flash` は 8〜20 秒，最も遅くて 125 秒で，1 回の上限に収まる
+- 理由:
+  - #9 で，flash-lite は手書きの 1 枚目で枠が半行〜1 行上にずれた．動画・テキストは flash-lite で足り，上げると費用が増えるだけ
+  - 種類ごとの値が空なら `GEMINI_MODEL` を使うので，今までの「`GEMINI_MODEL` 1 つで全部を変える」設定もそのまま効く（例: 全部 `gemini-3.5-flash` で試す）
+  - 429 や遅さが目立ったら，コードを変えずに `GEMINI_MODEL_IMAGE=gemini-3.5-flash` にできる（#9 の第二候補）
+  - 決め方を小さな関数に分け，環境変数を引数で渡してテストできるようにした（`server/test/models.test.ts`）
+- 捨てた案とその理由:
+  - 種類ごとの値が空なら `GEMINI_MODEL` を飛ばして種類ごとの既定にする: `GEMINI_MODEL` だけ設定した人の意図（全部をそのモデルにする）と食い違う．Issue の完了の条件の順番（種類ごと → `GEMINI_MODEL` → 既定）にもそろえた
+  - モデル名を Firestore の設定ドキュメントに置く: デプロイし直さずに変えられるが，読む場所とルールが増える．環境変数は `firebase deploy --only functions` で変わるので足りる
+  - 対応関係・問いかけ・式変形の確認も種類ごとに分ける: どれもテキスト（思考ステップ）だけを渡すので，投稿の種類で精度が変わる理由がない
+- 承知のうえの弱さ:
+  - `GEMINI_MODEL` を設定すると，画像も（`GEMINI_MODEL_IMAGE` が空なら）そのモデルになり，`gemini-3.8-flash` の既定が効かない
+  - `gemini-3.8-flash` の単価は 2026-12-31 までの導入価格．2027-01-01 から入力・出力とも 2 倍になる
+  - 1 回が 125 秒を超えて 130 秒で打ち切られると，やり直し（1 回）に回る．2 回とも打ち切られると `timeout` で失敗する
+  - 切り替えの目安: デプロイ先のログ（「ステップ化した」の `ms`）で画像が 100 秒を超える回が続く，または 429 が目立つなら，`GEMINI_MODEL_IMAGE=gemini-3.5-flash` にする（打ち切り → やり直しだと最大 260 秒ほどかかり，関数の上限 300 秒に近い）

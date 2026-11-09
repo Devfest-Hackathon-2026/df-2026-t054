@@ -1,0 +1,23 @@
+{
+  "name": "poc-7-video-steps",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "PoC #7: 説明動画 → 思考ステップ＋時刻（Cloud Storage 経由・Vertex AI Gemini）",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/video-to-steps.ts",
+    "validate": "node src/validate-cli.ts",
+    "make-video": "bash scripts/make-synthetic-video.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "2.31.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

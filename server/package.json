@@ -1,0 +1,25 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "投稿を思考ステップにする Cloud Functions（2nd gen）．Gemini は Vertex AI 経由",
+  "engines": {
+    "node": "24"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-schema.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@google/genai": "2.31.0",
+    "firebase-admin": "14.5.0",
+    "firebase-functions": "7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}

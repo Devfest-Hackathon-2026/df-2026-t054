@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1.0",
+  "segments": [
+    { "type": "split", "a": ["s1"], "b": ["s1"] },
+    { "type": "same", "a": ["s2"], "b": ["s2"] },
+    { "type": "same", "a": ["s3"], "b": ["s3"] },
+    { "type": "split", "a": ["s4"], "b": ["s4"] }
+  ]
+}

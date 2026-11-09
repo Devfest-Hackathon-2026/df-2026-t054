@@ -1,0 +1,29 @@
+{
+  "totalSec": 69.01,
+  "steps": [
+    {
+      "id": "s1",
+      "label": "方針（理由を話す）",
+      "startSec": 4.69,
+      "endSec": 23.09
+    },
+    {
+      "id": "s2",
+      "label": "N を作る",
+      "startSec": 23.09,
+      "endSec": 38.05
+    },
+    {
+      "id": "s3",
+      "label": "N の素因数はリストに無い",
+      "startSec": 38.05,
+      "endSec": 55.58
+    },
+    {
+      "id": "s4",
+      "label": "結論",
+      "startSec": 55.58,
+      "endSec": 64.97
+    }
+  ]
+}

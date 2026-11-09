@@ -1,0 +1,11 @@
+#!/bin/sh
+# main への直接 push を止める（private リポジトリではブランチ保護が使えないため）
+# 有効化: git config core.hooksPath .githooks
+# どうしても必要なとき（初期設定など）: git push --no-verify
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "✋ main への直接 push は禁止です．ブランチを切って PR を作ってください．" >&2
+    exit 1
+  fi
+done
+exit 0

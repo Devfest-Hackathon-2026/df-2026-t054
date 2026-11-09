@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "0.1.0",
+  "questions": [
+    { "side": "a", "stepId": "s1", "kind": "branch", "text": "もう1人は新しい素数を作る方針から始めました．あなたはなぜ素数が有限個だと仮定するところから始めたのですか？", "by": "ai" },
+    { "side": "a", "stepId": "s2", "kind": "missing_why", "text": "すべての素数の積に 1 を足した数 N を作ったのはなぜですか？", "by": "ai" },
+    { "side": "a", "stepId": "s3", "kind": "missing_why", "text": "N をそれぞれの pi で割ったときの余りを確かめたのは，何を考えてのことですか？", "by": "ai" },
+    { "side": "a", "stepId": "s4", "kind": "branch", "text": "もう1人は素数が無限にあると結論しました．あなたはなぜ仮定との矛盾として結論したのですか？", "by": "ai" },
+    { "side": "b", "stepId": "s1", "kind": "branch", "text": "もう1人は素数が有限個だと仮定して始めました．あなたはなぜ新しい素数が見つかることを示す方針にしたのですか？", "by": "ai" },
+    { "side": "b", "stepId": "s2", "kind": "missing_why", "text": "選んだ素数をすべて掛けて 1 を足した数を作ったのはなぜですか？", "by": "ai" },
+    { "side": "b", "stepId": "s3", "kind": "missing_why", "text": "N の素因数を1つ取って調べようと考えたのはなぜですか？", "by": "ai" },
+    { "side": "b", "stepId": "s4", "kind": "branch", "text": "ここでもう1人とは別の進め方になりました．あなたがこの進め方を選んだのはなぜですか？", "by": "template" }
+  ]
+}

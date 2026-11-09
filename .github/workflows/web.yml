@@ -1,0 +1,110 @@
+name: web
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    name: lint・型チェック・ビルド
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      # build は tsc -b（型チェック）→ vite build
+      # Firebase の Web 設定はビルドに埋め込まれる公開前提の値なので，Secrets ではなくリポジトリの Variables から渡す
+      - run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 1
+
+  preview:
+    name: Firebase Hosting プレビュー
+    needs: check
+    # フォークからの PR では OIDC トークンを発行できないので実行しない
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      # Workload Identity 連携で Google Cloud に認証するための OIDC トークン
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # 鍵は使わない（組織ポリシーで作成禁止）．短命の認証情報を GOOGLE_APPLICATION_CREDENTIALS に設定する
+      - name: Google Cloud に認証する（Workload Identity 連携）
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/306908875916/locations/global/workloadIdentityPools/provide-to-github/providers/github-actions
+          service_account: github-actions-preview@gdgoc-hackathon-513704.iam.gserviceaccount.com
+          # ここでサービスアカウントのトークンまで発行させ，権限の不足をこのステップで分かるようにする
+          token_format: access_token
+      - name: プレビューチャンネルへデプロイ
+        id: deploy
+        env:
+          CHANNEL: pr-${{ github.event.pull_request.number }}
+        run: |
+          # 失敗してもエラー内容をログに残してから止める
+          status=0
+          npx --yes firebase-tools@15 hosting:channel:deploy "$CHANNEL" --expires 7d --json > "$RUNNER_TEMP/deploy.json" || status=$?
+          cat "$RUNNER_TEMP/deploy.json"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::firebase-tools が失敗しました（exit $status）"
+            exit "$status"
+          fi
+          url=$(jq -r '.result[].url' "$RUNNER_TEMP/deploy.json" | head -n 1)
+          expire=$(jq -r '.result[].expireTime' "$RUNNER_TEMP/deploy.json" | head -n 1)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "::error::プレビュー URL を取得できませんでした"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "expire=$expire" >> "$GITHUB_OUTPUT"
+      - name: PR にプレビュー URL をコメントする
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.deploy.outputs.url }}
+          EXPIRE: ${{ steps.deploy.outputs.expire }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          body="プレビュー: $URL
+
+          - コミット: $SHA
+          - 期限: $EXPIRE"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "$body"
